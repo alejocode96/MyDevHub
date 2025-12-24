@@ -1,17 +1,7 @@
-import { useState } from 'react'
-
+import AppRoutes from "../../routes/AppRoutes"
 
 function App() {
-  const [count, setCount] = useState(0)
-
-  return (
-    <>
-      <div className='bg-amber-400'>
-       hola proyecto base creado
-      </div>
-     
-    </>
-  )
+  return <AppRoutes />
 }
 
 export default App
