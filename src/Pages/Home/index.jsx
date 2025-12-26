@@ -1,18 +1,20 @@
-import { useAppContext } from "../../context/AppContext"
+import { useAppContext } from "../../context/AppContext";
+import { useState } from "react";
+import { Sun, Moon } from "lucide-react";
 
+//imagenes
+import AlejandroPersonaje from "../../assets/Alejandro_Code_Personaje.png";
+
+//componentes
+import HeroSection from "../../Components/Home/heroSection";
 const Home = () => {
-  const { theme, setTheme } = useAppContext()
+  
 
   return (
-    <section>
-      <h1>Home</h1>
-      <p>Current theme: {theme}</p>
+    <>
+      <HeroSection/>
+    </>
+  );
+};
 
-      <button onClick={() => setTheme("dark")}>
-        Switch to dark
-      </button>
-    </section>
-  )
-}
-
-export default Home
+export default Home;
