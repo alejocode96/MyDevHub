@@ -1,11 +1,46 @@
+
+/**
+ * @file App.jsx
+ * @description componente raíz de la aplicación que configura el enrutamiento,
+ * el contexto global y la estructura base de navegación Implementa React Router V6
+ * con useRoutes hook para gestión declarativa de rutas.
+ * @author Alejandro Galeano - AlejoCode
+ * @version 1.0.0
+ */
+
 import { useState } from 'react'
+import { HashRouter, useRoutes } from "react-router-dom"
+
+// contexto global de la aplicación
+import { MyDevHubContext, MyDevHubProvider } from '../../context'
+
+/**
+ * Hook useRoutes para gestión delarativa de rutas
+ * Remplaza el enfoque tradicional de <Routes>
+ */
+
+import Home from '../Home';
+const AppRoutes = () => {
+  let routes = useRoutes([
+    {
+      path: "/",
+      element: <Home />
+    },
+  ]);
+
+  return routes;
+};
 
 function App() {
-  const [count, setCount] = useState(0)
+
 
   return (
     <>
-      <p >HOME</p>
+      <MyDevHubProvider>
+        <HashRouter>
+          <AppRoutes></AppRoutes>
+        </HashRouter>
+      </MyDevHubProvider>
     </>
   )
 }
