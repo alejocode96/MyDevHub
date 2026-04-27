@@ -84,7 +84,7 @@ const NavBar = () => {
                         </div>
 
                         {/**contenedor de navegación */}
-                        <div className='hidden md:flex items-center space-x-10 border-[1px] p-2 pl-10 pr-10 rounded-3xl shadow-2xl backdrop-blur-2xl bg-zinc-200/30 dark:bg-zinc-900 border-zinc-300 dark:border-zinc-800'>
+                        <div className='hidden md:flex items-center space-x-10 border-[1px] p-2 pl-10 pr-10 rounded-3xl shadow-2xl backdrop-blur-2xl bg-zinc-300/30 dark:bg-zinc-900 border-zinc-300 dark:border-zinc-800'>
                             {menuItems.map((item) => (
                                 <a key={item.name} href={item.href} className='text-gray-400 hover:text-zinc-700 dark:text-zinc-600 dark:hover:text-zinc-400 transition-colors duration-200 text-sm font-medium cursor-pointer'>{item.name}</a>
                             ))}
@@ -108,7 +108,7 @@ const NavBar = () => {
                         <div className='flex items-center gap-2'>
                             {/**boton modo dark/ligth  */}
                             <div className='relative'>
-                                <div className={`flex items-center bg-zinc-50 dark:bg-zinc-950 ring-1 ring-zinc-200 dark:ring-zinc-800 rounded-xl shadow-sm p-1 flex-shrink-0 transition-all duration-300 ease-out hover:shadow-md hover:bg-zinc-100  hover:dark:bg-zinc-900 hover:ring-zinc-300 hover:dark:ring-zinc-700 active:scale-95 group`}>
+                                <div className={`flex items-center bg-zinc-100 dark:bg-zinc-900 ring-1 ring-zinc-200 dark:ring-zinc-800 rounded-xl shadow-sm p-1 flex-shrink-0 transition-all duration-300 ease-out hover:shadow-md hover:bg-zinc-100  hover:dark:bg-zinc-950 hover:ring-zinc-300 hover:dark:ring-zinc-700 active:scale-95 group`}>
                                     <button onClick={toggleTheme} className='rounded-lg transition-all duration-all duration-300 p-1.5 text-zinc-400 group-hover:text-zinc-700 dark:group-hover:text-zinc-200 ' aria-label="Menu">
                                         {theme === "dark" ? (<Sun size={18} strokeWidth={1.5} className='transition-all duration-500 ease-out group-hover:rotate-180 group-hover:scale-110' />) : (<Moon size={18} strokeWidth={1.5} className='transition-all  duration-500 ease-out group-hover:-rotate-12 group-hover:scale-110' />)}
                                     </button>
@@ -117,7 +117,7 @@ const NavBar = () => {
 
                             {/*Menú Hamburguesa */}
                             <div className='relative'>
-                                <div ref={dropdownConfigRef} className={`flex items-center bg-zinc-50 dark:bg-zinc-950 ring-1 ring-zinc-200 dark:ring-zinc-800 rounded-xl shadow-sm p-1 flex-shrink-0 transition-all duration-300 ease-out hover:shadow-md hover:bg-zinc-100 hover:dark:bg-zinc-900 hover:ring-zinc-300 hover:dark:ring-zinc-700 active:scale-95 group`}>
+                                <div ref={dropdownConfigRef} className={`flex items-center bg-zinc-100 dark:bg-zinc-900 ring-1 ring-zinc-200 dark:ring-zinc-800 rounded-xl shadow-sm p-1 flex-shrink-0 transition-all duration-300 ease-out hover:shadow-md hover:bg-zinc-100 hover:dark:bg-zinc-950 hover:ring-zinc-300 hover:dark:ring-zinc-700 active:scale-95 group`}>
                                     <button onClick={() => setIsDropdownMenuOpen(!isDropdownMenuOpen)} className="rounded-lg transition-all duration-300 p-1.5 text-zinc-400 group-hover:text-zinc-700 dark:group-hover:text-zinc-200" aria-label="Menu" >
                                         <Logs size={18} strokeWidth={1.5} className={`transition-transform duration-300 ${isDropdownMenuOpen ? "" : "group-hover:-rotate-3"}`} />
                                     </button>
