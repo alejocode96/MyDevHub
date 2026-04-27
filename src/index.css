@@ -15,3 +15,36 @@ html {
     @apply bg-white dark:bg-zinc-950;
     scroll-behavior: smooth;
 }
+
+/*efecto en navbar*/
+@keyframes starlight-left {
+    0% {
+        transform: translate(100%)
+    }
+
+    50%,
+    to {
+        transform: translate(-100%)
+    }
+}
+
+.animate-starlight-left {
+    animation: starlight-left 4s cubic-bezier(.6, .6, 0, 1) 2s infinite
+}
+
+
+
+@keyframes starlight-right {
+    0% {
+        transform: translate(-100%)
+    }
+
+    50%,
+    to {
+        transform: translate(100%)
+    }
+}
+
+.animate-starlight-right {
+    animation: starlight-right 4s cubic-bezier(.6, .6, 0, 1) infinite
+}

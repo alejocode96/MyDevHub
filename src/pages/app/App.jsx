@@ -12,8 +12,7 @@ import { useState } from 'react'
 import { HashRouter, useRoutes } from "react-router-dom"
 
 // contexto global de la aplicación
-import { MyDevHubContext, MyDevHubProvider } from '../../context'
-
+import { MyDevHubProvider, MyDevHubContext } from '../../context';
 /**
  * Hook useRoutes para gestión delarativa de rutas
  * Remplaza el enfoque tradicional de <Routes>
