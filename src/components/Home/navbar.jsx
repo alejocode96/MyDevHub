@@ -16,7 +16,8 @@ import { MyDevHubContext } from '../../context';
 //Iconos
 import { Sun, Moon, Menu, ContactRound, CodeXml, LayersPlus, Logs, Newspaper } from "lucide-react";
 
-
+//animaciones
+import { usePageLoad } from '../../hooks/usePageLoad';
 //iamgenes
 import logo from "../../assets/landingPage/logo.png"
 import { href } from 'react-router-dom';
@@ -25,6 +26,7 @@ const NavBar = () => {
 
     /*obtener thema actual y la funcion toggel desde el contexto global */
     const { theme, setTheme, toggleTheme, } = useContext(MyDevHubContext)
+    const { loaded } = usePageLoad()
 
     /**Elementos de navegación principal */
     const menuItems = [
@@ -69,8 +71,8 @@ const NavBar = () => {
     return (
         <>
             {/*Contenedor principal de navegación */}
-            <nav className='absolute top-0 left-0 right-0 z-[100] w-full flex justify-center px-4 sm:px-6 py-2.5'>
-                <div className='w-[98%] flex items-center justify-between pt-1'>
+            <nav className={`absolute top-0 left-0 right-0 z-[100] w-full flex justify-center px-4 sm:px-6 py-2.5  transition-all duration-700 ease-out  ${loaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'}`}
+            >                <div className='w-[98%] flex items-center justify-between pt-1'>
                     {/**logo */}
                     <div className='flex flex-col items-start'>
                         <img src={logo} alt='Logo AlejoCode' className='h-[35px] z-[100] object-contain relative z-[100] ' style={{ maskImage: "linear-gradient(to bottom, black 90%, transparent 95%)", WebkitMaskImage: "linear-gradient(to bottom, black 90%, transparent 95%)", }}></img>
