@@ -15,7 +15,7 @@ import { MyDevHubContext } from '../../context'
 
 
 // animacion
-import { usePageLoad } from '../../hooks/usePageLoad'
+import { useScrollReveal } from '../../hooks/useScrollReveal'
 
 //image
 import personaje from '../../assets/landingPage/Alejandro_Code_Personaje.png'
@@ -23,10 +23,10 @@ const HeroSection = () => {
 
     /*Context*/
     const { theme, setTheme, toggleTheme } = useContext(MyDevHubContext);
-    const { anim, loaded } = usePageLoad()
+    const { ref, anim, visible } = useScrollReveal()
 
     return (
-        <section className='h-svh flex flex-col justify-center items-end transition-colors bg-white dark:bg-zinc-950 mt-16 '>
+        <section ref={ref} className='h-svh flex flex-col justify-center items-end transition-colors bg-white dark:bg-zinc-950 mt-16 '>
             {/*Contenedor con fondo visual y imagen */}
             <div className="absolute inset-0 w-full h-full flex justify-center overflow-hidden" style={{ maskImage: "linear-gradient(to bottom, black 20%, transparent 95%)", WebkitMaskImage: "linear-gradient(to bottom, black 20%, transparent 95%)", }} style={anim('0ms', 'fadeOnly').style}  >
                 {/* fondo con binarios */}
@@ -35,19 +35,7 @@ const HeroSection = () => {
                 <div className={`pointer-events-none absolute inset-0 z-20 bg-gradient-to-b from-transparent via-gray-50/20 to-gray-50/50  dark:bg-gradient-to-b dark:from-transparent dark:via-black/20 dark:to-black/50`}></div>
                 {/* Efecto de luz radial azul centrado detrás de la imagen Dimensiones: 380x380px Blur: 3xl (48px en Tailwind) Color HSL: Ajustado según tema para mantener el contraste */}
                 <div className={`absolute top-1/2 left-1/2 z-30 h-[380px] w-[380px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl opacity-90 bg-[radial-gradient(circle,hsla(206,81.9%,45%,0.8),transparent)] dark:opacity-90 dark:bg-[radial-gradient(circle,hsla(206,81.9%,65.3%,0.6),transparent)]`}></div>
-                <img
-                    src={personaje}
-                    alt="Alejandro Galeano - Ingeniero de Sistemas y Desarrollador"
-                    className={`relative z-40 h-[80vh] mt-[60px] sm:mt-[70px] md:mt-[90px] mb-[10px] object-contain
-    transition-all duration-1000 ease-out
-    ${loaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
-                    style={{
-                        transitionDelay: '100ms',
-                        maskImage: 'linear-gradient(to bottom, black 90%, transparent 95%)',
-                        WebkitMaskImage: 'linear-gradient(to bottom, black 90%, transparent 95%)',
-                        filter: theme ? 'brightness(0.8)' : 'brightness(0.5)',
-                    }}
-                />            </div>
+                <img src={personaje} alt="Alejandro Galeano - Ingeniero de Sistemas y Desarrollador" className={`relative z-40 h-[80vh] mt-[60px] sm:mt-[70px] md:mt-[90px] mb-[10px] object-contain transition-all duration-1000 ease-out ${visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`} style={{ transitionDelay: '100ms', maskImage: 'linear-gradient(to bottom, black 90%, transparent 95%)', WebkitMaskImage: 'linear-gradient(to bottom, black 90%, transparent 95%)', filter: theme ? 'brightness(0.8)' : 'brightness(0.5)', }} />            </div>
 
             {/**Consola izquierda */}
             <div className={`absolute left-3 sm:left-6 md:left-10 lg:left-12 top-[38%] sm:top-[36%] md:top-[35%] -translate-y-1/2 z-50 w-[120px] sm:w-[180px] md:w-[220px] lg:w-80  `}>
