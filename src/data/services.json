@@ -1,0 +1,37 @@
+[
+  {
+    "id": "ia-generativa",
+    "title": "IA GENERATIVA",
+    "description": "Modelos de lenguaje, imagen, video y audio. Prompt engineering, asistentes, proyectos y artefactos con ChatGPT, Claude y Gemini.",
+    "active": true,
+    "bentocard": "AIGenerativaBento"
+  },
+  {
+    "id": "automatizacion",
+    "title": "AUTOMATIZACIÓN",
+    "description": "Flujos inteligentes con n8n, Make, Zapier y Power Automate. Conecta apps, elimina tareas repetitivas y escala sin código.",
+    "active": false,
+    "bentocard": "AutomationBento"
+  },
+  {
+    "id": "analisis-datos",
+    "title": "ANÁLISIS DE DATOS",
+    "description": "De datos brutos a decisiones. Python, SQL Server y Power BI para dashboards, modelos predictivos y métricas de negocio.",
+    "active": false,
+    "bentocard": "DataBento"
+  },
+  {
+    "id": "frontend",
+    "title": "DESARROLLO FRONTEND",
+    "description": "Interfaces modernas y responsivas con React, Next.js y Tailwind CSS. Foco en rendimiento, accesibilidad y experiencia de usuario.",
+    "active": false,
+    "bentocard": "FrontendBento"
+  },
+  {
+    "id": "backend",
+    "title": "DESARROLLO BACKEND",
+    "description": "APIs REST, autenticación y bases de datos con Node.js, .NET y SQL Server. Arquitectura limpia y despliegue en la nube.",
+    "active": false,
+    "bentocard": "BackendBento"
+  }
+]

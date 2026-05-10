@@ -140,11 +140,7 @@ const AboutSection = () => {
                                             Inteligencia Artificial Aplicada
                                         </h3>
                                         <p className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
-                                            Desarrollo de agentes inteligentes, asistentes virtuales y soluciones
-                                            de IA generativa con impacto real en operaciones y experiencia de
-                                            usuario, aplicando modelos de lenguaje avanzados para automatizar,
-                                            analizar y potenciar procesos críticos del negocio.
-                                        </p>
+                                            Desarrollo de agentes autónomos, asistentes conversacionales y pipelines de IA generativa con LLMs, RAG y function calling. Soluciones que automatizan decisiones complejas, extraen valor de datos no estructurados y se integran de forma nativa en los procesos reales del negocio.                                        </p>
                                     </div>
                                 </div>
                             </div>
