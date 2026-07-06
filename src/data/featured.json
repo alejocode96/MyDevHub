@@ -1,0 +1,12 @@
+[
+  {
+    "id": 1,
+    "title": "Inteligencia Artificial aplicada",
+    "category": "IA",
+    "description": "Desarrollo soluciones con inteligencia artificial, automatización y sistemas inteligentes. Cada proyecto está documentado paso a paso como tutorial técnico.",
+    "image": "/services/service_ia.png",
+    "active": false,
+    "publicationDate":"Junio 2026",
+    "href":""
+  }
+]

@@ -6,6 +6,8 @@ import NavBar from '../../components/Home/navbar';
 import HeroSection from '../../components/Home/heroSection';
 import AboutSection from '../../components/Home/aboutSection';
 import MyServicesSection from '../../components/Home/myServicesSection';
+import ArticlesSection from '../../components/Home/articlesSection';
+
 const Home = () => {
     return (
         <>
@@ -17,6 +19,7 @@ const Home = () => {
                 <AboutSection />
 
                 <MyServicesSection />
+                <ArticlesSection />
             </main>
         </>
     )
