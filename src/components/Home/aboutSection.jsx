@@ -28,7 +28,7 @@ const AboutSection = () => {
     // ─────────────────────────────────────────────────────────────────────
 
     return (
-        <section id='aboutSection' className='relative overflow-hidden bg-gray-50 dark:bg-zinc-900 mb-10 rounded-4xl shadow-[0_2px_8px_0_rgba(99,99,99,0.2)] border border-zinc-300/50 dark:border-zinc-800/50 py-10 px-4 sm:px-6 lg:px-8' style={{ scrollMarginTop: '120px' }}  >
+        <section id='aboutSection' className='relative overflow-hidden bg-gray-50 dark:bg-zinc-900 mb-10 rounded-4xl shadow-[0_2px_8px_0_rgba(99,99,99,0.2)] border border-zinc-300/50 dark:border-zinc-800/50 py-10 px-4 sm:px-6 lg:px-8' style={{ scrollMarginTop: '24px' }}  >
             {/* Efecto decorativo lateral izquierdo */}
             <div className='absolute top-0 left-0 w-[200px] h-[400px] bg-gradient-to-r from-zinc-600 to-zinc-400 opacity-40 dark:from-[#fff]/30 dark:to-[#e9e9e9]/30 dark:opacity-100 pointer-events-none' style={{ maskImage: "radial-gradient(farthest-side at left, white, transparent)", WebkitMaskImage: "radial-gradient(farthest-side at left, white, transparent)" }} />
 

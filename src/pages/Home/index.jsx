@@ -7,6 +7,8 @@ import HeroSection from '../../components/Home/heroSection';
 import AboutSection from '../../components/Home/aboutSection';
 import MyServicesSection from '../../components/Home/myServicesSection';
 import ArticlesSection from '../../components/Home/articlesSection';
+import ContactForm from '../../components/Home/contactForm';
+import Footer from '../../components/Home/footer';
 
 const Home = () => {
     return (
@@ -20,7 +22,9 @@ const Home = () => {
 
                 <MyServicesSection />
                 <ArticlesSection />
+                <ContactForm />
             </main>
+            <Footer />
         </>
     )
 }

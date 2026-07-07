@@ -20,7 +20,10 @@ import { Sun, Moon, Menu, ContactRound, CodeXml, LayersPlus, Logs, Newspaper } f
 import { useScrollReveal } from '../../hooks/useScrollReveal';
 //iamgenes
 import logo from "../../assets/landingPage/logo.png"
-import { href } from 'react-router-dom';
+
+// navegación por scroll (no por hash, por conflicto con HashRouter)
+import { scrollToSection } from '../../utils/scrollToSection';
+
 const NavBar = () => {
 
 
@@ -49,23 +52,13 @@ const NavBar = () => {
      * Detecta clicks en cualquier parte del documento y cierra el menú
      * si el click fue fuera del área del dropdown
      */
-    const handleMenuItemClick = (E, href) => {
-
+    const handleMenuItemClick = (e, href) => {
         e.preventDefault();
         //cerrar el menu
         setIsDropdownMenuOpen(false);
 
-        //Navegar inmediatamente con scrollIntoView
-        setTimeout(() => {
-            const targetId = href.replace('#', '');
-            const element = document.getElementById(targetId);
-            if (element) {
-                element.scrollIntoView({
-                    behavior: 'smoot',
-                    block: 'start'
-                });
-            }
-        }, 100);
+        //Navegar con scrollIntoView una vez el dropdown terminó de cerrarse
+        setTimeout(() => scrollToSection(href), 100);
     }
 
     return (
@@ -88,7 +81,7 @@ const NavBar = () => {
                     {/**contenedor de navegación */}
                     <div className='hidden md:flex items-center space-x-10 border-[1px] p-2 pl-10 pr-10 rounded-3xl shadow-2xl backdrop-blur-2xl bg-zinc-300/30 dark:bg-zinc-900 border-zinc-300 dark:border-zinc-800'>
                         {menuItems.map((item) => (
-                            <a key={item.name} href={item.href} className='text-gray-400 hover:text-zinc-700 dark:text-zinc-600 dark:hover:text-zinc-400 transition-colors duration-200 text-sm font-medium cursor-pointer'>{item.name}</a>
+                            <a key={item.name} href={item.href} onClick={(e) => handleMenuItemClick(e, item.href)} className='text-gray-400 hover:text-zinc-700 dark:text-zinc-600 dark:hover:text-zinc-400 transition-colors duration-200 text-sm font-medium cursor-pointer'>{item.name}</a>
                         ))}
                     </div>
 
