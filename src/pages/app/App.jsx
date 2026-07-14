@@ -9,7 +9,7 @@
  */
 
 import { useState } from 'react'
-import { HashRouter, useRoutes } from "react-router-dom"
+import { BrowserRouter, useRoutes } from "react-router-dom"
 
 // contexto global de la aplicación
 import { MyDevHubProvider, MyDevHubContext } from '../../context';
@@ -19,12 +19,12 @@ import { MyDevHubProvider, MyDevHubContext } from '../../context';
  */
 
 import Home from '../Home';
+import AIPage from '../AIPage';
+
 const AppRoutes = () => {
   let routes = useRoutes([
-    {
-      path: "/",
-      element: <Home />
-    },
+    { path: "/", element: <Home /> },
+    { path: "/services/IA_Generativa", element: <AIPage /> },
   ]);
 
   return routes;
@@ -36,9 +36,9 @@ function App() {
   return (
     <>
       <MyDevHubProvider>
-        <HashRouter>
+        <BrowserRouter >
           <AppRoutes></AppRoutes>
-        </HashRouter>
+        </BrowserRouter >
       </MyDevHubProvider>
     </>
   )
