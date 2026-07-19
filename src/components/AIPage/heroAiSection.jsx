@@ -1,4 +1,5 @@
 import React, { useState, useContext, useRef, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 //contexto
 import { MyDevHubContext } from '../../context';
@@ -30,6 +31,8 @@ const navMenuItems = [
 
 const HeroAiSection = () => {
 
+    const navigate = useNavigate()
+
     /*obtener thema actual y la funcion toggel desde el contexto global */
     const { theme, toggleTheme } = useContext(MyDevHubContext)
     const { ref, visible } = useScrollReveal({ threshold: 0, rootMargin: '0px', initialDelay: 50 })
@@ -58,7 +61,11 @@ const HeroAiSection = () => {
     const handleNavClick = (e, href) => {
         e.preventDefault();
         setIsMenuOpen(false);
-        setTimeout(() => scrollToSection(href), 100);
+        if (href.startsWith('/')) {
+            navigate(href);
+        } else {
+            setTimeout(() => scrollToSection(href), 100);
+        }
     };
 
     return (

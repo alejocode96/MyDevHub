@@ -5,15 +5,183 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 
-html,
-body {
+/* Solo en html (no en body): por la regla CSS de que overflow-x/overflow-y
+   no pueden mezclar 'visible' con un valor no-visible, poner overflow-x:
+   hidden en AMBOS (html y body) forzaba overflow-y a 'auto' en los dos,
+   creando un segundo contenedor de scroll anidado (el "doble scroll raro"
+   de la página) cuando su alto no calzaba pixel a pixel con el de html.
+
+   overflow-anchor: none — sin esto, el "scroll anchoring" nativo del
+   navegador pelea contra el reset de scroll al cambiar de ruta (ver
+   ScrollToTop en App.jsx): justo después de montar una página nueva, con
+   el layout todavía asentándose (fuentes/imágenes cargando), el navegador
+   reajusta el scroll para "anclarse" a contenido que se está moviendo —
+   y eso pisa un scrollTo(0,0) hecho por JS un instante antes, dejando la
+   página aterrizada más abajo de lo que el código pidió. */
+html {
     overflow-x: hidden;
+    overflow-anchor: none;
 }
 
 /* Estilos modo dark/ligth */
 html {
     @apply bg-white dark:bg-zinc-950;
     scroll-behavior: smooth;
+}
+
+/* Oculta la scrollbar visualmente sin quitar la funcionalidad de scroll
+   (usado en la barra de píldoras del sidebar mobile de ConceptosChat) */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* Scrollbar delgada y sutil, a tono con el sistema de colores (en vez de la
+   barra gris del navegador por defecto) — usada en .main-chat y la lista de
+   conceptos del sidebar de ConceptosChat */
+.custom-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(24, 24, 27, 0.16) transparent;
+}
+.dark .custom-scroll {
+    scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+}
+.custom-scroll::-webkit-scrollbar {
+    width: 7px;
+    height: 7px;
+}
+.custom-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+.custom-scroll::-webkit-scrollbar-thumb {
+    background: rgba(24, 24, 27, 0.16);
+    border-radius: 999px;
+}
+.dark .custom-scroll::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.14);
+}
+.custom-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(24, 24, 27, 0.28);
+}
+.dark .custom-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.24);
+}
+
+/* ==== Revelado por scroll (ConceptosChat) — estado inicial por tipo,
+   el IntersectionObserver agrega .is-visible cuando entra en viewport ==== */
+[data-reveal] {
+    transition: opacity 500ms ease-out, transform 500ms ease-out;
+}
+[data-reveal="fade-up"] { opacity: 0; transform: translateY(12px); }
+[data-reveal="scale-in"] { opacity: 0; transform: scale(0.94); }
+[data-reveal="slide-left"] { opacity: 0; transform: translateX(16px); }
+[data-reveal="pulse"] { opacity: 0; transform: scale(0.97); }
+[data-reveal].is-visible { opacity: 1; transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+    [data-reveal] { transition: none !important; opacity: 1 !important; transform: none !important; }
+}
+
+/* ==== Tokens del sistema de ilustraciones isométricas (ConceptosIASection) ====
+   Un solo acento cian/azul, intensidad de glow distinta por tema — leídos
+   tanto por CSS (fondo, anillos, dot-grid) como por JS/Three.js (objeto 3D). */
+:root {
+    --iso-bg: #f4f4f5;
+    --iso-dot: rgba(24, 24, 27, 0.16);
+    --iso-ring-1: rgba(24, 24, 27, 0.07);
+    --iso-ring-2: rgba(8, 145, 178, 0.09);
+    --iso-ring-3: rgba(24, 24, 27, 0.05);
+    --iso-glow: rgba(8, 145, 178, 0.10);
+    --iso-glow-strong: rgba(8, 145, 178, 0.20);
+    --iso-glow-opacity: 0.16;
+    --iso-glow-opacity-strong: 0.30;
+    --iso-accent: #0e7490;
+    --iso-accent-emissive: #0891b2;
+    --iso-neutral-1: #d4d4d8;
+    --iso-neutral-2: #a1a1aa;
+    --iso-neutral-3: #71717a;
+    --iso-text: #52525b;
+    --iso-text-accent: #0e7490;
+    --iso-border: rgba(24, 24, 27, 0.10);
+    --iso-shadow: rgba(24, 24, 27, 0.18);
+    --iso-glass-edge: #ffffff;
+    --iso-glass-edge-opacity: 0.32;
+    --iso-radar-ring-1: #f4f4f6;
+    --iso-radar-ring-2: #eeeef1;
+    --iso-radar-ring-3: #e6e6eb;
+    --iso-radar-ring-4: #dcdce4;
+    --iso-radar-dash: rgba(0, 0, 0, 0.13);
+}
+
+.dark {
+    --iso-bg: #0a0d12;
+    --iso-dot: rgba(34, 211, 238, 0.16);
+    --iso-ring-1: rgba(255, 255, 255, 0.06);
+    --iso-ring-2: rgba(34, 211, 238, 0.10);
+    --iso-ring-3: rgba(255, 255, 255, 0.04);
+    --iso-glow: rgba(34, 211, 238, 0.16);
+    --iso-glow-strong: rgba(34, 211, 238, 0.32);
+    --iso-glow-opacity: 0.30;
+    --iso-glow-opacity-strong: 0.5;
+    --iso-accent: #22d3ee;
+    --iso-accent-emissive: #22d3ee;
+    --iso-neutral-1: #52525b;
+    --iso-neutral-2: #3f3f46;
+    --iso-neutral-3: #27272a;
+    --iso-text: #a1a1aa;
+    --iso-text-accent: #67e8f9;
+    --iso-border: rgba(34, 211, 238, 0.14);
+    --iso-shadow: rgba(0, 0, 0, 0.55);
+    --iso-glass-edge: #ffffff;
+    --iso-glass-edge-opacity: 0.18;
+    --iso-radar-ring-1: #1d1d22;
+    --iso-radar-ring-2: #1f1f25;
+    --iso-radar-ring-3: #212127;
+    --iso-radar-ring-4: #24242a;
+    --iso-radar-dash: rgba(255, 255, 255, 0.13);
+}
+
+/*anillos concéntricos del fondo isométrico — rotación lenta continua, más viva en hover*/
+@keyframes iso-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.animate-iso-spin-slow { animation: iso-spin 70s linear infinite; }
+.animate-iso-spin-fast { animation: iso-spin 20s linear infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+    .animate-iso-spin-slow, .animate-iso-spin-fast { animation: none; }
+}
+
+/*barrido secuencial del radar concéntrico (ConceptosIASection, Card 1) —
+  cada tag/punto toma su turno de "foco" dentro de un ciclo de 4.8s
+  (4 tramos de 1.2s), con animation-delay escalonado por capa*/
+@keyframes radar-focus-tag {
+    0%, 4% { opacity: 0.42; }
+    9%, 19% { opacity: 1; }
+    25%, 100% { opacity: 0.42; }
+}
+
+@keyframes radar-focus-dot {
+    0%, 4% { opacity: 0.4; transform: scale(1); }
+    9%, 19% { opacity: 1; transform: scale(1.3); }
+    25%, 100% { opacity: 0.4; transform: scale(1); }
+}
+
+@keyframes radar-focus-glow {
+    0%, 4% { opacity: 0; }
+    9%, 19% { opacity: 0.55; }
+    25%, 100% { opacity: 0; }
+}
+
+@keyframes radar-focus-ring {
+    0%, 4% { opacity: 0; }
+    9%, 19% { opacity: 0.85; }
+    25%, 100% { opacity: 0; }
 }
 
 /*efecto en navbar*/
@@ -48,6 +216,35 @@ html {
 .animate-starlight-right {
     animation: starlight-right 4s cubic-bezier(.6, .6, 0, 1) infinite
 }
+
+/*variante mas lenta y sutil, usada en el frame de ConceptosChat (el frame
+  es mucho mas ancho que el navbar, la misma duracion ahi se percibe
+  demasiado rapida) — misma curva, mas del doble de duracion*/
+.animate-starlight-left-slow {
+    animation: starlight-left 9s cubic-bezier(.6, .6, 0, 1) 2s infinite
+}
+
+.animate-starlight-right-slow {
+    animation: starlight-right 9s cubic-bezier(.6, .6, 0, 1) infinite
+}
+
+/*recorrido completo (borde a borde) usado en ConceptosChat — a diferencia
+  de starlight-left/right (que usan transform:translate relativo al propio
+  ancho del elemento, pensado para una pista angosta como el navbar), estas
+  animan `left` en % relativo al contenedor completo, para que un trazo
+  angosto SI recorra visualmente todo el ancho del frame.*/
+@keyframes chat-streak-right {
+    0% { left: -20%; }
+    50%, to { left: 105%; }
+}
+
+@keyframes chat-streak-left {
+    0% { left: 105%; }
+    50%, to { left: -20%; }
+}
+
+.animate-chat-streak-right { animation: chat-streak-right 9s cubic-bezier(.6, .6, 0, 1) infinite; }
+.animate-chat-streak-left { animation: chat-streak-left 9s cubic-bezier(.6, .6, 0, 1) 2s infinite; }
 
 /*efecto flotante suave (imágenes/tarjetas destacadas)*/
 @keyframes float {

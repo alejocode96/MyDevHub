@@ -6,7 +6,53 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import services from "../../data/services.json";
 import AIGenerativaBento from "../BentoCards/AIGenerativaBento";
-import { useScrollReveal } from "../../hooks/useScrollReveal";
+
+/**
+ * @hook useRevealOnce
+ * Variante "single-shot" de useScrollReveal: aparece una sola vez al llegar
+ * a la sección y ya — el observer se desconecta apenas dispara, así que no
+ * vuelve a evaluarse nunca más. Necesario para el carrusel: las cards se
+ * mueven horizontalmente con transform al arrastrar, y con el reveal normal
+ * (que reacciona a cada entrada/salida del viewport) ese movimiento las hace
+ * "entrar y salir" del IntersectionObserver en cada swipe, redisparando la
+ * transición de aparición — eso es lo que causaba el salto de página en
+ * móvil. Con single-shot, una vez visible, el arrastre no puede volver a
+ * tocar el estado.
+ */
+const useRevealOnce = ({ threshold = 0.15, rootMargin = '-50px' } = {}) => {
+    const ref = useRef(null);
+    const [visible, setVisible] = useState(false);
+
+    useEffect(() => {
+        const el = ref.current;
+        if (!el) return;
+
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    setVisible(true);
+                    observer.disconnect();
+                }
+            },
+            { threshold, rootMargin }
+        );
+
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, []);
+
+    const anim = (transitionDelay = '0ms', type = 'fadeUp') => {
+        const base = 'transition-all duration-700 ease-out';
+        const fadeUp = visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5';
+        const fadeOnly = visible ? 'opacity-100' : 'opacity-0';
+        return {
+            className: `${base} ${type === 'fadeOnly' ? fadeOnly : fadeUp}`,
+            style: { transitionDelay },
+        };
+    };
+
+    return { ref, anim, visible };
+};
 
 const BENTO_MAP = {
     AIGenerativaBento: AIGenerativaBento,
@@ -86,14 +132,14 @@ function PlaceholderVisual() {
 }
 
 // ==================== BENTO CARD ====================
-function BentoCard({ service, onClick, animRef, animClassName, animStyle }) {
+function BentoCard({ service, onClick, animClassName, animStyle }) {
     const BentoVisual = BENTO_MAP[service.bentocard] || null;
     const FADE_LIGHT = "rgba(244,244,245,1)";
     const FADE_DARK = "rgba(39,39,42,1)";
 
     return (
-        // wrapper externo recibe el ref del reveal para no interferir con el transform de hover
-        <div ref={animRef} className={`flex-shrink-0 ${animClassName}`} style={animStyle}>
+        // wrapper externo recibe la clase/estilo del reveal (sin ref propio — ver useRevealOnce)
+        <div className={`flex-shrink-0 ${animClassName}`} style={animStyle}>
             <div onClick={() => onClick(service.id, service.active)} className={`relative overflow-hidden rounded-[20px] flex flex-col bg-gray-100 dark:bg-zinc-800 will-change-transform ${service.active ? "cursor-pointer" : "cursor-default"}`} style={{ height: CARD_HEIGHT, transition: TRANSITION, border: "1px solid rgba(0,0,0,0.06)", boxShadow: SHADOW_REST, }} onMouseEnter={e => { if (service.active) { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = SHADOW_HOVER; } }} onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0px)"; e.currentTarget.style.boxShadow = SHADOW_REST; }}  >
                 <DotPatternCanvas opacityTop={0.13} opacityBottom={0.01} />
 
@@ -132,24 +178,21 @@ const MyServicesSection = () => {
 
     const carouselRef = useRef(null);
     const isDraggingRef = useRef(false);
+    const currentIndexRef = useRef(0);
+    const maxIndexRef = useRef(0);
 
-    // ── Scroll reveal observers ──────────────────────────────────────────
-    const panel = useScrollReveal();
-    const dots = useScrollReveal();
-    // Un observer por card — hasta 8 servicios cubiertos
-    const cardReveal = [
-        useScrollReveal(),
-        useScrollReveal(),
-        useScrollReveal(),
-        useScrollReveal(),
-        useScrollReveal(),
-        useScrollReveal(),
-        useScrollReveal(),
-        useScrollReveal(),
-    ];
+    // ── Scroll reveal — single-shot: aparece una vez al llegar a la sección
+    // y no vuelve a evaluarse (ver useRevealOnce). El carrusel usa UN solo
+    // observer para todas las cards (no uno por card): así el drag horizontal
+    // nunca puede re-disparar nada, sin importar cuánto se muevan las cards.
+    const panel = useRevealOnce();
+    const dots = useRevealOnce();
+    const carouselReveal = useRevealOnce();
     // ────────────────────────────────────────────────────────────────────
 
     const maxIndex = Math.max(0, services.length - slidesPerView);
+    currentIndexRef.current = currentIndex;
+    maxIndexRef.current = maxIndex;
 
     useEffect(() => {
         const handleResize = () => {
@@ -201,26 +244,62 @@ const MyServicesSection = () => {
 
     const handleMouseLeave = () => { if (isDragging) handleMouseUp(); };
 
-    const handleTouchStart = (e) => {
-        setStartX(e.touches[0].clientX);
-        setStartTime(Date.now());
-        setTranslateX(0);
-    };
+    // Swipe táctil: registrado como listener NATIVO (no vía onTouchMove de
+    // React) porque React marca los handlers de touchmove como passive por
+    // defecto, así que e.preventDefault() ahí nunca llega a bloquear el
+    // scroll nativo — el navegador termina scrolleando la página ENTERA al
+    // mismo tiempo que se arrastra el carrusel. Con un listener nativo
+    // { passive: false } el preventDefault sí frena el scroll de la página
+    // mientras se arrastra horizontalmente.
+    useEffect(() => {
+        const el = carouselRef.current;
+        if (!el) return;
 
-    const handleTouchMove = (e) => {
-        const diff = e.touches[0].clientX - startX;
-        setTranslateX(Math.max(-200, Math.min(200, diff)));
-        if (Math.abs(diff) > 10) e.preventDefault();
-    };
+        let localStartX = 0;
+        let localStartTime = 0;
+        let localTranslateX = 0;
 
-    const handleTouchEnd = () => {
-        const elapsed = Date.now() - startTime;
-        const velocity = Math.abs(translateX) / elapsed;
-        const threshold = velocity > 0.5 ? 30 : 50;
-        if (translateX > threshold && currentIndex > 0) prevSlide();
-        else if (translateX < -threshold && currentIndex < maxIndex) nextSlide();
-        setTranslateX(0);
-    };
+        const onTouchStart = (e) => {
+            localStartX = e.touches[0].clientX;
+            localStartTime = Date.now();
+            localTranslateX = 0;
+            setTranslateX(0);
+        };
+
+        const onTouchMove = (e) => {
+            const diff = e.touches[0].clientX - localStartX;
+            localTranslateX = Math.max(-200, Math.min(200, diff));
+            if (Math.abs(diff) > 10) e.preventDefault();
+            setTranslateX(localTranslateX);
+        };
+
+        const onTouchEnd = () => {
+            const elapsed = Date.now() - localStartTime;
+            const velocity = Math.abs(localTranslateX) / elapsed;
+            const threshold = velocity > 0.5 ? 30 : 50;
+            // No se llama a prevSlide()/nextSlide() acá — esas closures quedarían
+            // fijas al primer render (este efecto corre una sola vez al montar),
+            // capturando el maxIndex inicial (slidesPerView=3 por defecto, antes
+            // de que el resize lo corrija a 1 en mobile) para siempre. En cambio,
+            // se lee currentIndexRef/maxIndexRef (que sí se actualizan cada
+            // render) y se llama a setCurrentIndex directo, que es estable.
+            if (localTranslateX > threshold && currentIndexRef.current > 0) {
+                setCurrentIndex((p) => p - 1);
+            } else if (localTranslateX < -threshold && currentIndexRef.current < maxIndexRef.current) {
+                setCurrentIndex((p) => p + 1);
+            }
+            setTranslateX(0);
+        };
+
+        el.addEventListener("touchstart", onTouchStart, { passive: true });
+        el.addEventListener("touchmove", onTouchMove, { passive: false });
+        el.addEventListener("touchend", onTouchEnd, { passive: true });
+        return () => {
+            el.removeEventListener("touchstart", onTouchStart);
+            el.removeEventListener("touchmove", onTouchMove);
+            el.removeEventListener("touchend", onTouchEnd);
+        };
+    }, []);
 
     const getTransformValue = () => {
         if (!carouselRef.current) return "translateX(0px)";
@@ -239,7 +318,7 @@ const MyServicesSection = () => {
     return (
         <section id="myServicesSection" className="relative w-full mb-10 overflow-x-hidden" style={{ scrollMarginTop: "24px" }} >
             {/* Panel lateral decorativo — entra desde la izquierda */}
-            <div className={`overflow-hidden absolute top-20 h-[660px] sm:h-[610px] md:bottom-0 left-0 w-[85%] sm:w-[80%] lg:w-1/2 bg-gray-50 dark:bg-zinc-900 shadow-[0_2px_8px_0_rgba(99,99,99,0.2)] dark:shadow-[0_8px_24px_-4px_rgba(0,0,0,0.5),0_32px_64px_-8px_rgba(0,0,0,0.35)] border border-zinc-200/50 dark:border-zinc-800/50 z-0 rounded-tr-[2rem] rounded-br-[2rem] sm:rounded-tr-[3rem] sm:rounded-br-[3rem] ${panel.anim('0ms').className}`} style={panel.anim('0ms').style}   >
+            <div ref={panel.ref} className={`overflow-hidden absolute top-20 h-[660px] sm:h-[610px] md:bottom-0 left-0 w-[85%] sm:w-[80%] lg:w-1/2 bg-gray-50 dark:bg-zinc-900 shadow-[0_2px_8px_0_rgba(99,99,99,0.2)] dark:shadow-[0_8px_24px_-4px_rgba(0,0,0,0.5),0_32px_64px_-8px_rgba(0,0,0,0.35)] border border-zinc-200/50 dark:border-zinc-800/50 z-0 rounded-tr-[2rem] rounded-br-[2rem] sm:rounded-tr-[3rem] sm:rounded-br-[3rem] ${panel.anim('0ms').className}`} style={panel.anim('0ms').style}   >
                 <div className="absolute top-0 right-0 w-[200px] h-[400px] bg-gradient-to-r from-zinc-600 to-zinc-400 opacity-40 dark:from-[#fff]/30 dark:to-[#e9e9e9]/30 dark:opacity-100 pointer-events-none" style={{ maskImage: "radial-gradient(farthest-side at right, white, transparent)", WebkitMaskImage: "radial-gradient(farthest-side at right, white, transparent)", }} />
                 <div className="w-[85%] sm:w-[90%] ml-6 sm:ml-8 md:ml-10 mr-4 sm:mr-6 md:mr-10 my-6 sm:my-8 md:my-10 relative z-10 pb-3 border-b border-zinc-300 dark:border-zinc-700">
                     <div className="md:items-start md:justify-between md:gap-6">
@@ -278,17 +357,19 @@ const MyServicesSection = () => {
                     </div>
                 )}
 
-                {/* Carrusel */}
-                <div className="relative w-full">
+                {/* Carrusel — el ref del reveal va en este wrapper externo, que NUNCA
+                    se mueve (solo el flex de adentro se transforma al arrastrar), así
+                    el observer nunca queda expuesto al drag horizontal */}
+                <div ref={carouselReveal.ref} className="relative w-full">
                     <div style={{ clipPath: "inset(-16px -12px -16px -12px)", padding: "16px 12px", margin: "-16px -12px", }}>
-                        <div ref={carouselRef} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseLeave} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} className="select-none w-full" style={{ cursor: isDragging ? "grabbing" : "grab" }}  >
+                        <div ref={carouselRef} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseLeave} className="select-none w-full" style={{ cursor: isDragging ? "grabbing" : "grab", touchAction: "pan-y" }}  >
                             <div className="flex gap-4" style={{ transform: getTransformValue(), transition: isDragging ? "none" : "transform 300ms ease-out", }}  >
                                 {services.map((service, index) => {
-                                    const reveal = cardReveal[index] ?? cardReveal[0];
-                                    // Cada card entra con un pequeño delay escalonado
+                                    // Cada card entra con un pequeño delay escalonado, pero todas
+                                    // comparten el mismo trigger (carouselReveal) — ver useRevealOnce
                                     const delay = `${150 + index * 80}ms`;
                                     return (
-                                        <BentoCard key={service.id} service={service} onClick={handleCardClick} animRef={reveal.ref} animClassName={reveal.anim(delay).className} animStyle={{ ...reveal.anim(delay).style, width: `calc((100% - ${(slidesPerView - 1) * 16}px) / ${slidesPerView})`, }} />
+                                        <BentoCard key={service.id} service={service} onClick={handleCardClick} animClassName={carouselReveal.anim(delay).className} animStyle={{ ...carouselReveal.anim(delay).style, width: `calc((100% - ${(slidesPerView - 1) * 16}px) / ${slidesPerView})`, }} />
                                     );
                                 })}
                             </div>
