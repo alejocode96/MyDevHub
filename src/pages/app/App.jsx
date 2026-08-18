@@ -102,9 +102,9 @@ function App() {
   return (
     <>
       <MyDevHubProvider>
-        <BrowserRouter >
+        <BrowserRouter basename={import.meta.env.BASE_URL}>
           <AppRoutes></AppRoutes>
-        </BrowserRouter >
+        </BrowserRouter>
       </MyDevHubProvider>
     </>
   )

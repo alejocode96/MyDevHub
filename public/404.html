@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>my-devhub</title>
+  <script type="text/javascript">
+    // GitHub Pages es un host estático: no reescribe rutas del lado del
+    // servidor, así que una recarga o un link directo a una ruta interna
+    // (ej. /MyDevHub/services/IA_Generativa) devuelve este 404.html en vez
+    // de index.html. Truco estándar (spa-github-pages): codificamos la ruta
+    // pedida en la query string y redirigimos a index.html, que la decodifica
+    // y restaura con history.replaceState antes de que React Router monte.
+    var pathSegmentsToKeep = 1; // "/MyDevHub"
+    var l = window.location;
+    l.replace(
+      l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+      l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/?/' +
+      l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
+      (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+      l.hash
+    );
+  </script>
+</head>
+
+<body>
+</body>
+
+</html>

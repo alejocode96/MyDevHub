@@ -9,6 +9,22 @@
     rel="stylesheet">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>my-devhub</title>
+  <script type="text/javascript">
+    // Contraparte de public/404.html: si llegamos acá con una ruta
+    // codificada en la query string (?/services/IA_Generativa), la
+    // restauramos en la barra de direcciones ANTES de que React Router
+    // monte, para que arranque ya en la ruta correcta.
+    (function (l) {
+      if (l.search && l.search[1] === '/') {
+        var decoded = l.search.slice(1).split('&').map(function (s) {
+          return s.replace(/~and~/g, '&');
+        }).join('?');
+        window.history.replaceState(null, null,
+          l.pathname.slice(0, -1) + decoded + l.hash
+        );
+      }
+    }(window.location));
+  </script>
 </head>
 
 <body>
