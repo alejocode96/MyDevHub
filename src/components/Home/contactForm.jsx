@@ -9,11 +9,11 @@
  * @version 1.4.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Mail, X, Send, User, MessageSquare, Clock, MessageCircle, CheckCircle2, AlertTriangle } from 'lucide-react';
 
-// animación
-import { useScrollReveal } from '../../hooks/useScrollReveal';
+// animación — reveal en cascada + parallax conector con la sección anterior
+import { gsap, useGSAP, responsiveMotion } from '../../utils/gsap';
 
 // íconos de marca y datos de contacto compartidos
 import { GithubIcon, LinkedinIcon } from '../icons/brandIcons';
@@ -34,9 +34,142 @@ const ContactForm = () => {
     const [canalEnviado, setCanalEnviado] = useState(null);
     const [enviandoCorreo, setEnviandoCorreo] = useState(false);
 
-    // ── Un observer por columna, con delays escalonados por elemento ───────
-    const { ref: leftRef, anim: leftAnim } = useScrollReveal();
-    const { ref: formRef, anim: formAnim } = useScrollReveal();
+    // ── El bloque completo se levanta en 3D con el scroll (mismo lenguaje
+    // que About/Services/Articles), y DENTRO de esa misma entrada, todo el
+    // componente se anima pieza por pieza — es un formulario, así que la
+    // metáfora es que se "arma" a medida que aparece: ícono, título,
+    // párrafo y redes a la izquierda, luego cada campo del formulario
+    // (Nombre+Correo, Asunto, Mensaje, botones) entra por su cuenta a la
+    // derecha, como si se fuera completando. El ícono de correo además
+    // queda con un pulso continuo una vez visible. ─────────────────────────
+    const sectionRef = useRef(null)
+    const blobRef = useRef(null)
+    const contentRef = useRef(null)
+    const leftColRef = useRef(null)
+    const iconWrapRef = useRef(null)
+    const headingRef = useRef(null)
+    const paraRef = useRef(null)
+    const socialRef = useRef(null)
+    const mailtoRef = useRef(null)
+    const formRef = useRef(null)
+    const rowNameEmailRef = useRef(null)
+    const asuntoRef = useRef(null)
+    const mensajeRef = useRef(null)
+    const actionsRef = useRef(null)
+
+    useGSAP(() => {
+        const socialIcons = socialRef.current.children
+        const formFields = [rowNameEmailRef.current, asuntoRef.current, mensajeRef.current, actionsRef.current]
+
+        // El layout pasa a una sola columna por debajo de 1024px (Tailwind
+        // lg:grid-cols-12) — bastante antes que el resto de las secciones,
+        // porque acá hasta tablets en landscape apilan. Igual que en
+        // About/Articles: un cascade compartido atado al TOP de la sección
+        // no sirve una vez que la sección se vuelve mucho más alta que el
+        // viewport — comprobado con Playwright: en mobile, "acciones" (el
+        // botón de envío) ya estaba en opacity ~1 la primera vez que
+        // entraba en pantalla, es decir que el cascade lo daba por
+        // terminado ANTES de que el usuario llegara a verlo por scroll
+        // normal. En mobile cada pieza usa su propio trigger.
+        gsap.matchMedia().add(responsiveMotion(1024), (context) => {
+            const { isDesktop } = context.conditions
+
+            if (isDesktop) {
+                // Estado oculto inmediato — el bloque completo Y cada pieza
+                // con su propio movimiento (y + scale, algunas con rotate)
+                // — no solo un fade: el desplazamiento del contenedor es
+                // grande (140px) y si las piezas de adentro solo se movían
+                // 16-20px, ese movimiento quedaba "tapado" por el del
+                // contenedor y se sentía como si nada de adentro animara.
+                // Mismo criterio de intensidad que las mini-cards de
+                // AboutSection (y + scale marcados).
+                gsap.set(contentRef.current, { transformPerspective: 1000, transformOrigin: '50% 100%', rotationX: 18, y: 140, scale: 0.92, opacity: 0 })
+                // La columna izquierda es su propio contenedor — mismo
+                // criterio que el form: además de que cada pieza de adentro
+                // (ícono, título, párrafo, redes, mailto) anima por su
+                // cuenta, el contenedor que las agrupa también entra como
+                // mini-card 3D, para que quede simétrico con el form
+                gsap.set(leftColRef.current, { y: 36, scale: 0.96, rotationX: 16, transformPerspective: 900, transformOrigin: '50% 100%', opacity: 0 })
+                gsap.set(iconWrapRef.current, { y: -30, rotate: -25, scale: 0.5, opacity: 0 })
+                gsap.set(headingRef.current, { y: 34, scale: 0.94, opacity: 0 })
+                gsap.set(paraRef.current, { y: 30, scale: 0.96, opacity: 0 })
+                gsap.set(mailtoRef.current, { y: 24, opacity: 0 })
+                gsap.set(socialIcons, { scale: 0.3, opacity: 0 })
+                // El form (la card con sombra y borde) entra como una
+                // mini-card 3D más, mismo lenguaje que las de AboutSection
+                gsap.set(formRef.current, { y: 36, scale: 0.96, rotationX: 16, transformPerspective: 900, transformOrigin: '50% 100%', opacity: 0 })
+                gsap.set(formFields, { y: 34, opacity: 0, scale: 0.93 })
+
+                // Levante 3D del bloque — rápido, solo establece el plano
+                gsap.timeline({
+                    scrollTrigger: { trigger: sectionRef.current, start: 'top 95%', end: 'top 70%', scrub: 1 },
+                }).to(contentRef.current, { rotationX: 0, y: 0, scale: 1, opacity: 1, ease: 'none', duration: 1 })
+
+                // Ensamblaje pieza por pieza — columna izquierda primero,
+                // formulario campo a campo después, en un rango de scroll
+                // más generoso para que el stagger se sienta sin atropello
+                gsap.timeline({
+                    scrollTrigger: { trigger: sectionRef.current, start: 'top 88%', end: 'top 38%', scrub: 1 },
+                })
+                    .to(leftColRef.current, { y: 0, scale: 1, rotationX: 0, opacity: 1, ease: 'none', duration: 0.35 }, 0)
+                    .to(iconWrapRef.current, { y: 0, rotate: 0, scale: 1, opacity: 1, ease: 'none', duration: 0.35 }, 0.05)
+                    .to(headingRef.current, { y: 0, scale: 1, opacity: 1, ease: 'none', duration: 0.3 }, 0.1)
+                    .to(paraRef.current, { y: 0, scale: 1, opacity: 1, ease: 'none', duration: 0.3 }, 0.18)
+                    .to(socialIcons, { scale: 1, opacity: 1, ease: 'none', duration: 0.25, stagger: 0.06 }, 0.28)
+                    .to(mailtoRef.current, { y: 0, opacity: 1, ease: 'none', duration: 0.25 }, 0.4)
+                    .to(formRef.current, { y: 0, scale: 1, rotationX: 0, opacity: 1, ease: 'none', duration: 0.3 }, 0.45)
+                    .to(formFields, { y: 0, opacity: 1, scale: 1, ease: 'none', duration: 0.35, stagger: 0.13 }, 0.55)
+            } else {
+                // Mobile — el contenedor conserva el mismo lenguaje "card
+                // 3D" (más sutil que en desktop, ver AboutSection), y cada
+                // pieza de adentro revela atada a SU PROPIA posición.
+                gsap.set(contentRef.current, { transformPerspective: 1600, transformOrigin: '50% 100%', rotationX: 10, y: 60, scale: 0.95, opacity: 0 })
+                gsap.timeline({
+                    scrollTrigger: { trigger: sectionRef.current, start: 'top 92%', end: 'top 65%', scrub: 1 },
+                }).to(contentRef.current, { rotationX: 0, y: 0, scale: 1, opacity: 1, ease: 'none', duration: 1 })
+
+                const revealOwn = (target, from) => {
+                    gsap.set(target, from)
+                    const to = { opacity: 1 }
+                    if ('y' in from) to.y = 0
+                    if ('scale' in from) to.scale = 1
+                    if ('rotate' in from) to.rotate = 0
+                    if ('rotationX' in from) to.rotationX = 0
+                    gsap.timeline({
+                        scrollTrigger: { trigger: target, start: 'top 88%', end: 'top 55%', scrub: 1 },
+                    }).to(target, { ...to, ease: 'none', duration: 1 })
+                }
+
+                // La columna izquierda es su propio contenedor acá también,
+                // simétrico con el form (ver comentario en la rama desktop)
+                revealOwn(leftColRef.current, { y: 20, scale: 0.95, rotationX: 12, transformPerspective: 900, transformOrigin: '50% 100%', opacity: 0 })
+                revealOwn(iconWrapRef.current, { y: -16, rotate: -18, opacity: 0 })
+                revealOwn(headingRef.current, { y: 20, opacity: 0 })
+                revealOwn(paraRef.current, { y: 20, opacity: 0 })
+                Array.from(socialIcons).forEach((icon) => revealOwn(icon, { scale: 0.4, opacity: 0 }))
+                revealOwn(mailtoRef.current, { y: 20, opacity: 0 })
+                // El form (la card con sombra y borde) entra como mini-card
+                // 3D acá también, mismo criterio que en desktop
+                revealOwn(formRef.current, { y: 20, scale: 0.95, rotationX: 12, transformPerspective: 900, transformOrigin: '50% 100%', opacity: 0 })
+                formFields.forEach((field) => revealOwn(field, { y: 24, opacity: 0, scale: 0.96 }))
+            }
+        })
+
+        // Detalle vivo — el ícono de correo respira suavemente en loop,
+        // sin depender del scroll (GSAP repeat + yoyo, no usado en el
+        // resto de la página hasta ahora)
+        gsap.matchMedia().add('(prefers-reduced-motion: no-preference)', () => {
+            gsap.to(iconWrapRef.current, { scale: 1.08, duration: 1.6, ease: 'sine.inOut', repeat: -1, yoyo: true })
+
+            // Parallax conector — la figura de fondo se desplaza con el
+            // scroll, dando continuidad al cerrar la página
+            gsap.to(blobRef.current, {
+                yPercent: -15,
+                ease: 'none',
+                scrollTrigger: { trigger: sectionRef.current, start: 'top bottom', end: 'bottom top', scrub: 1 },
+            })
+        })
+    }, { scope: sectionRef })
     // ─────────────────────────────────────────────────────────────────────
 
     // Manejar cambios en los inputs
@@ -144,8 +277,8 @@ const ContactForm = () => {
     };
 
     return (
-        <section id="contactSection" className="pt-8 h-auto relative" style={{ scrollMarginTop: '24px' }}>
-            <div className="relative mx-auto mt-16 max-w-full p-4 sm:p-6 pb-8 pt-16 lg:px-8">
+        <section ref={sectionRef} id="contactSection" className="pt-8 h-auto relative" style={{ scrollMarginTop: '24px' }}>
+            <div ref={contentRef} className="relative mx-auto mt-16 max-w-full p-4 sm:p-6 pb-8 pt-16 lg:px-8 will-change-transform">
                 {/* Línea superior fina */}
                 <div aria-hidden="true" className="user-select-none center pointer-events-none absolute -top-0.5 left-1/2 h-px w-4/5 max-w-[500px] -translate-x-1/2 -translate-y-1/2 transform-gpu [background:linear-gradient(90deg,rgba(0,0,0,0)_0%,rgba(2,132,199,0.65)_50%,rgba(0,0,0,0)_100%)]"></div>
 
@@ -170,6 +303,7 @@ const ContactForm = () => {
                     {/* Fondo de figura decorativa */}
                     <div className="absolute inset-0 flex transform-gpu justify-center overflow-hidden blur-3xl bg-white dark:bg-[#09090B]" aria-hidden="true">
                         <div
+                            ref={blobRef}
                             className="aspect-[1108/532] h-auto w-[69.25rem] flex-none bg-gradient-to-r from-cyan-500 to-blue-800 opacity-20 dark:opacity-20"
                             style={{ clipPath: "polygon(77.5% 40.13%, 90% 10%, 100% 50%, 95% 80%, 92% 85%, 75% 65%, 61.26% 54.7%, 50% 54.7%, 47.24% 65.81%, 50% 85%, 26.16% 73.91%, 0.1% 100%, 1% 40.13%, 20% 48.75%, 60% 0.25%, 67.5% 32.63%)" }}>
                         </div>
@@ -180,22 +314,22 @@ const ContactForm = () => {
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center">
 
                             {/* Columna izquierda - Información, más angosta para darle más ancho al formulario */}
-                            <div ref={leftRef} className="lg:col-span-5 flex flex-col items-center text-center">
-                                <div className={`inline-flex items-center justify-center w-14 h-14 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-full mb-4 shadow-lg shadow-blue-500/50 ${leftAnim('0ms').className}`} style={leftAnim('0ms').style}>
+                            <div ref={leftColRef} className="lg:col-span-5 flex flex-col items-center text-center will-change-transform">
+                                <div ref={iconWrapRef} className="inline-flex items-center justify-center w-14 h-14 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-full mb-4 shadow-lg shadow-blue-500/50 will-change-transform">
                                     <Mail className="w-7 h-7 text-white" />
                                 </div>
 
-                                <h2 className={`leading-tight bg-gradient-to-br from-gray-600 to-gray-900 dark:from-white dark:to-zinc-500 bg-clip-text text-2xl font-bold tracking-tight text-transparent sm:text-3xl ${leftAnim('100ms').className}`} style={leftAnim('100ms').style}>
+                                <h2 ref={headingRef} className="leading-tight bg-gradient-to-br from-gray-600 to-gray-900 dark:from-white dark:to-zinc-500 bg-clip-text text-2xl font-bold tracking-tight text-transparent sm:text-3xl">
                                     ¿Listo para trabajar juntos?
                                 </h2>
 
-                                <p className={`mt-3 max-w-sm text-sm sm:text-base text-zinc-700 dark:text-zinc-400/80 ${leftAnim('200ms').className}`} style={leftAnim('200ms').style}>
+                                <p ref={paraRef} className="mt-3 max-w-sm text-sm sm:text-base text-zinc-700 dark:text-zinc-400/80">
                                     Cuéntame sobre tu proyecto y hagamos realidad esas ideas.
                                     Estoy aquí para ayudarte a crear soluciones innovadoras.
                                 </p>
 
                                 {/* Redes sociales */}
-                                <div className={`mt-5 flex items-center gap-3 ${leftAnim('300ms').className}`} style={leftAnim('300ms').style}>
+                                <div ref={socialRef} className="mt-5 flex items-center gap-3">
                                     <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" aria-label="GitHub" className="flex items-center justify-center w-9 h-9 rounded-full border border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-blue-500 hover:text-blue-600 dark:hover:border-cyan-400 dark:hover:text-cyan-400 transition-colors duration-200">
                                         <GithubIcon className="w-4 h-4" />
                                     </a>
@@ -206,9 +340,9 @@ const ContactForm = () => {
 
                                 {/* Contacto directo por correo, de baja jerarquía frente al formulario */}
                                 <a
+                                    ref={mailtoRef}
                                     href={`mailto:${EMAIL_DESTINO}`}
-                                    className={`mt-4 inline-flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-500 hover:text-blue-600 dark:hover:text-cyan-400 transition-colors duration-200 ${leftAnim('400ms').className}`}
-                                    style={leftAnim('400ms').style}
+                                    className="mt-4 inline-flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-500 hover:text-blue-600 dark:hover:text-cyan-400 transition-colors duration-200"
                                 >
                                     <Mail className="w-3.5 h-3.5" />
                                     ¿Prefieres escribir directo? Envíame un correo
@@ -216,8 +350,8 @@ const ContactForm = () => {
                             </div>
 
                             {/* Columna derecha - Formulario, más ancha */}
-                            <div ref={formRef} className="lg:col-span-7">
-                                <form onSubmit={handleEmailSubmit} noValidate className={`bg-zinc-200/50 dark:bg-zinc-800/50 backdrop-blur-lg rounded-md p-5 sm:p-6 shadow-2xl border border-zinc-300 dark:border-zinc-800 ${formAnim('100ms').className}`} style={formAnim('100ms').style}>
+                            <div ref={formRef} className="lg:col-span-7 will-change-transform">
+                                <form onSubmit={handleEmailSubmit} noValidate className="bg-zinc-200/50 dark:bg-zinc-800/50 backdrop-blur-lg rounded-md p-5 sm:p-6 shadow-2xl border border-zinc-300 dark:border-zinc-800">
 
                                     {/* Aviso de confirmación, distinto según el canal y resultado del envío */}
                                     {canalEnviado && (
@@ -234,7 +368,7 @@ const ContactForm = () => {
                                     )}
 
                                     {/* Campos Nombre y Correo, uno al lado del otro desde sm para acortar el formulario */}
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                                    <div ref={rowNameEmailRef} className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                                         <div>
                                             <label htmlFor="nombre" className="block mb-1.5 text-sm font-medium text-start text-zinc-700 dark:text-zinc-300">
                                                 Nombre
@@ -273,7 +407,7 @@ const ContactForm = () => {
                                     </div>
 
                                     {/* Campo Asunto */}
-                                    <div className="mb-4">
+                                    <div ref={asuntoRef} className="mb-4">
                                         <label htmlFor="asunto" className="block mb-1.5 text-sm font-medium text-start text-zinc-700 dark:text-zinc-300">
                                             Asunto
                                         </label>
@@ -292,7 +426,7 @@ const ContactForm = () => {
                                     </div>
 
                                     {/* Campo Mensaje */}
-                                    <div className="mb-4">
+                                    <div ref={mensajeRef} className="mb-4">
                                         <label htmlFor="mensaje" className="block mb-1.5 text-sm font-medium text-start text-zinc-700 dark:text-zinc-300">
                                             Mensaje
                                         </label>
@@ -310,34 +444,37 @@ const ContactForm = () => {
                                         )}
                                     </div>
 
-                                    {/* Botón Enviar por correo */}
-                                    <button type="submit" disabled={enviandoCorreo} className="w-full bg-gradient-to-r from-blue-500 to-cyan-400 hover:from-blue-600 hover:to-cyan-500 text-white font-semibold py-2.5 px-6 rounded-md transform hover:scale-[1.02] transition-all duration-300 shadow-lg shadow-blue-500/30 flex items-center justify-center group disabled:opacity-60 disabled:hover:scale-100 disabled:cursor-not-allowed">
-                                        <Send className={`w-5 h-5 mr-2 transition-transform ${enviandoCorreo ? 'animate-pulse' : 'group-hover:translate-x-1'}`} />
-                                        {enviandoCorreo ? 'Enviando...' : 'Enviar por Correo'}
-                                    </button>
+                                    {/* Acciones — botón de envío, señal de respuesta, canal alterno */}
+                                    <div ref={actionsRef}>
+                                        {/* Botón Enviar por correo */}
+                                        <button type="submit" disabled={enviandoCorreo} className="w-full bg-gradient-to-r from-blue-500 to-cyan-400 hover:from-blue-600 hover:to-cyan-500 text-white font-semibold py-2.5 px-6 rounded-md transform hover:scale-[1.02] transition-all duration-300 shadow-lg shadow-blue-500/30 flex items-center justify-center group disabled:opacity-60 disabled:hover:scale-100 disabled:cursor-not-allowed">
+                                            <Send className={`w-5 h-5 mr-2 transition-transform ${enviandoCorreo ? 'animate-pulse' : 'group-hover:translate-x-1'}`} />
+                                            {enviandoCorreo ? 'Enviando...' : 'Enviar por Correo'}
+                                        </button>
 
-                                    {/* Señal de expectativa de respuesta */}
-                                    <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-500">
-                                        <Clock className="w-3.5 h-3.5" />
-                                        Normalmente respondo en menos de 24h
-                                    </p>
+                                        {/* Señal de expectativa de respuesta */}
+                                        <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-500">
+                                            <Clock className="w-3.5 h-3.5" />
+                                            Normalmente respondo en menos de 24h
+                                        </p>
 
-                                    {/* Divisor */}
-                                    <div className="my-3 flex items-center gap-3">
-                                        <span className="h-px flex-1 bg-zinc-300 dark:bg-zinc-700"></span>
-                                        <span className="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-500">o</span>
-                                        <span className="h-px flex-1 bg-zinc-300 dark:bg-zinc-700"></span>
+                                        {/* Divisor */}
+                                        <div className="my-3 flex items-center gap-3">
+                                            <span className="h-px flex-1 bg-zinc-300 dark:bg-zinc-700"></span>
+                                            <span className="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-500">o</span>
+                                            <span className="h-px flex-1 bg-zinc-300 dark:bg-zinc-700"></span>
+                                        </div>
+
+                                        {/* Canal alterno - WhatsApp, usa los mismos datos y validación del formulario */}
+                                        <button
+                                            type="button"
+                                            onClick={handleWhatsappSubmit}
+                                            className="w-full border border-zinc-300 dark:border-zinc-700 hover:border-green-500 dark:hover:border-green-500 text-zinc-700 dark:text-zinc-300 hover:text-green-600 dark:hover:text-green-400 font-medium py-2 px-6 rounded-md transition-colors duration-300 flex items-center justify-center gap-2 text-sm"
+                                        >
+                                            <MessageCircle className="w-4 h-4" />
+                                            Enviar por WhatsApp
+                                        </button>
                                     </div>
-
-                                    {/* Canal alterno - WhatsApp, usa los mismos datos y validación del formulario */}
-                                    <button
-                                        type="button"
-                                        onClick={handleWhatsappSubmit}
-                                        className="w-full border border-zinc-300 dark:border-zinc-700 hover:border-green-500 dark:hover:border-green-500 text-zinc-700 dark:text-zinc-300 hover:text-green-600 dark:hover:text-green-400 font-medium py-2 px-6 rounded-md transition-colors duration-300 flex items-center justify-center gap-2 text-sm"
-                                    >
-                                        <MessageCircle className="w-4 h-4" />
-                                        Enviar por WhatsApp
-                                    </button>
                                 </form>
                             </div>
 

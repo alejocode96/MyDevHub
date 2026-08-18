@@ -1,6 +1,11 @@
 import React, { useLayoutEffect } from 'react'
 import HeroAiSection from '../../components/AIPage/heroAiSection'
-import ConceptosChat from '../ConceptosChat'
+import ConceptosBentoSection from '../../components/AIPage/conceptosBentoSection'
+import TecnicasChat from '../TecnicasChat'
+import PracticaSection from '../../components/AIPage/practicaSection'
+import AsistentesSection from '../../components/AIPage/asistentesSection'
+import FloatingContactButton from '../../components/AIPage/floatingContactButton'
+import Footer from '../../components/Home/footer'
 
 const AIPage = () => {
     /** Salvaguarda redundante al ScrollToTop de App.jsx: si por lo que sea
@@ -29,7 +34,12 @@ const AIPage = () => {
     return (
         <main className=''>
             <HeroAiSection />
-            <ConceptosChat />
+            <ConceptosBentoSection />
+            <TecnicasChat />
+            <PracticaSection />
+            <AsistentesSection />
+            <Footer />
+            <FloatingContactButton />
         </main>
     )
 }

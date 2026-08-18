@@ -20,7 +20,7 @@ import { MyDevHubProvider, MyDevHubContext } from '../../context';
 
 import Home from '../Home';
 import AIPage from '../AIPage';
-import ConceptosChat from '../ConceptosChat';
+import TecnicasChat from '../TecnicasChat';
 
 /**
  * React Router NO resetea el scroll al cambiar de ruta (a diferencia de una
@@ -85,7 +85,7 @@ const AppRoutes = () => {
   let routes = useRoutes([
     { path: "/", element: <Home /> },
     { path: "/services/IA_Generativa", element: <AIPage /> },
-    { path: "/services/IA_Generativa/conceptos", element: <ConceptosChat /> },
+    { path: "/services/IA_Generativa/tecnicas", element: <TecnicasChat /> },
   ]);
 
   return (

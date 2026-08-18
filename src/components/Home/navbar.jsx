@@ -16,8 +16,8 @@ import { MyDevHubContext } from '../../context';
 //Iconos
 import { Sun, Moon, Menu, ContactRound, CodeXml, LayersPlus, Logs, Newspaper } from "lucide-react";
 
-//animaciones
-import { useScrollReveal } from '../../hooks/useScrollReveal';
+//animaciones — entrada simple, siempre visible al montar (sin ScrollTrigger)
+import { gsap, useGSAP } from '../../utils/gsap';
 //iamgenes
 import logo from "../../assets/landingPage/logo.png"
 
@@ -29,7 +29,13 @@ const NavBar = () => {
 
     /*obtener thema actual y la funcion toggel desde el contexto global */
     const { theme, setTheme, toggleTheme, } = useContext(MyDevHubContext)
-    const { ref, anim, visible } = useScrollReveal({ threshold: 0, rootMargin: '0px', initialDelay: 50 })
+    const navRef = useRef(null)
+
+    useGSAP(() => {
+        gsap.matchMedia().add('(prefers-reduced-motion: no-preference)', () => {
+            gsap.from(navRef.current, { opacity: 0, y: -12, duration: 0.7, ease: 'power3.out' })
+        })
+    }, { scope: navRef })
 
     /**Elementos de navegación principal */
     const menuItems = [
@@ -64,7 +70,7 @@ const NavBar = () => {
     return (
 
 
-        <nav ref={ref} className={`absolute top-0 left-0 right-0 z-[100] w-full flex justify-center px-4 sm:px-6 py-2.5  transition-all duration-700 ease-out  ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'}`}>
+        <nav ref={navRef} className='absolute top-0 left-0 right-0 z-[100] w-full flex justify-center px-4 sm:px-6 py-2.5'>
             <div className='w-[98%] flex items-center justify-between pt-1'>
                 {/**logo */}
                 <div className='flex flex-col items-start'>

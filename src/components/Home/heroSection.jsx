@@ -7,39 +7,87 @@
  * @version 1.0.0
  */
 
-import React from 'react'
-import { useContext } from 'react'
+import React, { useContext, useRef } from 'react'
 
 //contexto
 import { MyDevHubContext } from '../../context'
 
-
-// animacion
-import { useScrollReveal } from '../../hooks/useScrollReveal'
+// animacion — timeline de entrada + scrollytelling (dispersión al salir del viewport)
+import { gsap, useGSAP } from '../../utils/gsap'
 
 //image
 import personaje from '../../assets/landingPage/Alejandro_Code_Personaje.png'
+
 const HeroSection = () => {
 
     /*Context*/
-    const { theme, setTheme, toggleTheme } = useContext(MyDevHubContext);
-    const { ref, anim, visible } = useScrollReveal()
+    const { theme } = useContext(MyDevHubContext);
+
+    const sectionRef = useRef(null)
+    const bgRef = useRef(null)
+    const glowRef = useRef(null)
+    const imgRef = useRef(null)
+    const consoleLeftRef = useRef(null)
+    const consoleRightRef = useRef(null)
+    const titleRef = useRef(null)
+
+    useGSAP(() => {
+        // Respeta prefers-reduced-motion: si el usuario lo pide, todo queda
+        // visible sin animar (mismo criterio que [data-reveal] en index.css)
+        const mm = gsap.matchMedia()
+
+        mm.add('(prefers-reduced-motion: no-preference)', () => {
+            gsap.set(bgRef.current, { opacity: 0 })
+            gsap.set(imgRef.current, { opacity: 0, y: 40, scale: 0.92 })
+            gsap.set(consoleLeftRef.current, { opacity: 0, x: -40 })
+            gsap.set(consoleRightRef.current, { opacity: 0, x: 40 })
+            gsap.set(titleRef.current, { opacity: 0, y: 20 })
+
+            // ── Timeline de entrada — corre una sola vez al montar ──────────
+            gsap.timeline({ defaults: { ease: 'power3.out' } })
+                .to(bgRef.current, { opacity: 1, duration: 0.6 }, 0)
+                .to(imgRef.current, { opacity: 1, y: 0, scale: 1, duration: 1 }, 0.1)
+                .to(consoleLeftRef.current, { opacity: 1, x: 0, duration: 0.7 }, 0.3)
+                .to(consoleRightRef.current, { opacity: 1, x: 0, duration: 0.7 }, 0.45)
+                .to(titleRef.current, { opacity: 1, y: 0, duration: 0.7 }, 0.55)
+
+            // ── Scrollytelling de salida — atado al scroll (scrub), no a
+            // duration: las piezas del hero se dispersan y la imagen hace
+            // parallax/zoom a medida que el usuario baja hacia AboutSection.
+            // Al subir de nuevo, el mismo scrub las recompone. ──────────────
+            gsap.timeline({
+                scrollTrigger: {
+                    trigger: sectionRef.current,
+                    start: 'top top',
+                    end: 'bottom top',
+                    scrub: 1,
+                },
+                defaults: { ease: 'none' },
+            })
+                .to(imgRef.current, { yPercent: -12, scale: 1.06, opacity: 0.3 }, 0)
+                .to(glowRef.current, { opacity: 0, scale: 1.3 }, 0)
+                .to(consoleLeftRef.current, { x: -110, opacity: 0 }, 0)
+                .to(consoleRightRef.current, { x: 110, opacity: 0 }, 0)
+                .to(titleRef.current, { y: -60, opacity: 0 }, 0)
+        })
+    }, { scope: sectionRef })
 
     return (
-        <section ref={ref} className='h-svh flex flex-col justify-center items-end transition-colors bg-white dark:bg-zinc-950 mt-16 '>
+        <section ref={sectionRef} className='h-svh flex flex-col justify-center items-end transition-colors bg-white dark:bg-zinc-950 mt-16 '>
             {/*Contenedor con fondo visual y imagen */}
-            <div className="absolute inset-0 w-full h-full flex justify-center overflow-hidden" style={{ maskImage: "linear-gradient(to bottom, black 20%, transparent 95%)", WebkitMaskImage: "linear-gradient(to bottom, black 20%, transparent 95%)", }} style={anim('0ms', 'fadeOnly').style}  >
+            <div ref={bgRef} className="absolute inset-0 w-full h-full flex justify-center overflow-hidden" style={{ maskImage: "linear-gradient(to bottom, black 20%, transparent 95%)", WebkitMaskImage: "linear-gradient(to bottom, black 20%, transparent 95%)" }}>
                 {/* fondo con binarios */}
                 <div id="static-binary-grid" className={`static-binary-grid absolute inset-0 w-full h-full ${theme == "light" ? "binary-grid-light" : "binary-grid-dark"}`}></div>
                 {/* Degradado vertical para crear profundidad y transición suave  De transparente a semi-opaco en la parte inferior */}
                 <div className={`pointer-events-none absolute inset-0 z-20 bg-gradient-to-b from-transparent via-gray-50/20 to-gray-50/50  dark:bg-gradient-to-b dark:from-transparent dark:via-black/20 dark:to-black/50`}></div>
                 {/* Efecto de luz radial azul centrado detrás de la imagen Dimensiones: 380x380px Blur: 3xl (48px en Tailwind) Color HSL: Ajustado según tema para mantener el contraste */}
-                <div className={`absolute top-1/2 left-1/2 z-30 h-[380px] w-[380px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl opacity-90 bg-[radial-gradient(circle,hsla(206,81.9%,45%,0.8),transparent)] dark:opacity-90 dark:bg-[radial-gradient(circle,hsla(206,81.9%,65.3%,0.6),transparent)]`}></div>
-                <img src={personaje} alt="Alejandro Galeano - Ingeniero de Sistemas y Desarrollador" className={`relative z-40 h-[80vh] mt-[60px] sm:mt-[70px] md:mt-[90px] mb-[10px] object-contain transition-all duration-1000 ease-out ${visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`} style={{ transitionDelay: '100ms', maskImage: 'linear-gradient(to bottom, black 90%, transparent 95%)', WebkitMaskImage: 'linear-gradient(to bottom, black 90%, transparent 95%)', filter: theme ? 'brightness(0.8)' : 'brightness(0.5)', }} />            </div>
+                <div ref={glowRef} className={`absolute top-1/2 left-1/2 z-30 h-[380px] w-[380px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl opacity-90 bg-[radial-gradient(circle,hsla(206,81.9%,45%,0.8),transparent)] dark:opacity-90 dark:bg-[radial-gradient(circle,hsla(206,81.9%,65.3%,0.6),transparent)]`}></div>
+                <img ref={imgRef} src={personaje} alt="Alejandro Galeano - Ingeniero de Sistemas y Desarrollador" className="relative z-40 h-[80vh] mt-[60px] sm:mt-[70px] md:mt-[90px] mb-[10px] object-contain will-change-transform" style={{ maskImage: 'linear-gradient(to bottom, black 90%, transparent 95%)', WebkitMaskImage: 'linear-gradient(to bottom, black 90%, transparent 95%)', filter: 'brightness(0.8)' }} />
+            </div>
 
             {/**Consola izquierda */}
             <div className={`absolute left-3 sm:left-6 md:left-10 lg:left-12 top-[38%] sm:top-[36%] md:top-[35%] -translate-y-1/2 z-50 w-[120px] sm:w-[180px] md:w-[220px] lg:w-80  `}>
-                <div className={anim('200ms').className} style={anim('200ms').style}>
+                <div ref={consoleLeftRef} className="will-change-transform">
                     <div className="backdrop-blur-xl bg-white/10 dark:bg-zinc-900/30  rounded-lg border border-gray-200/50 dark:border-gray-700/50 shadow-xl overflow-hidden">
                         <div className="bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 px-2 sm:px-3 py-1 sm:py-1.5 md:py-2 flex items-center gap-1 sm:gap-1.5 border-b border-gray-300/50 dark:border-gray-600/50">
                             <div className="flex gap-0.5 sm:gap-1">
@@ -68,7 +116,7 @@ const HeroSection = () => {
 
             {/* consola derecha */}
             <div className={`absolute right-3 sm:right-6 md:right-10 lg:right-12 top-[60%] sm:top-[50%] md:top-1/2 -translate-y-1/2 z-50 w-[160px] sm:w-[180px] lg:w-80 `}>
-                <div className={anim('350ms').className} style={anim('350ms').style}>
+                <div ref={consoleRightRef} className="will-change-transform">
                     <div className='backdrop-blur-xl bg-white/10 dark:bg-zinc-900/30 rounded-lg border border-gray-200/50 dark:border-gray-700/50 shadow-xl overflow-hidden'>
                         <div className='bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 px-2 sm:px-3 py-1 sm:py-1.5 md:py-2 flex items-center gap-1 sm:gap-1.5 border-b border-gray-300/50 dark:border-gray-600/50'>
                             <div className='flex gap-0.5 sm:gap-1'>
@@ -96,7 +144,7 @@ const HeroSection = () => {
 
             </div>
 
-            <div className={`absolute bottom-6 md:bottom-10 left-0 right-0 z-50 flex flex-col justify-center px-4 ${anim('500ms').className} `} style={anim('500ms').style}>
+            <div ref={titleRef} className="absolute bottom-6 md:bottom-10 left-0 right-0 z-50 flex flex-col justify-center px-4 will-change-transform">
                 <p className='relative text-center text-blue-500 text-sm sm:text-base md:text-lg lg:text-xl font-extralight uppercase leading-1.5 tracking-[0.3em] sm:tracking-[0.4em] md:tracking-[0.5em]'>ALEJANDRO GALEANO</p>
                 <h1 className={`relative z-10 text-5xl sm:text-6xl md:text-7xl lg:text-8xl text-center font-sans font-bold bg-clip-text text-transparent bg-[radial-gradient(circle_at_center,_#1f2937_0%,_#6b7280_30%,_#d1d5db_80%)] dark:bg-[radial-gradient(circle_at_center,_#ffffff_0%,_#6b7280_30%,_#050607_80%)] `}>DEVELOPER</h1>
             </div>

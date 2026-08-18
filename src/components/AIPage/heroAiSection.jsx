@@ -1,4 +1,5 @@
 import React, { useState, useContext, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 
 //contexto
@@ -9,11 +10,11 @@ import { Sun, Moon, Logs, ArrowRight, BookOpen, Wrench, FlaskConical, Bot } from
 
 //animaciones
 import { useScrollReveal } from '../../hooks/useScrollReveal';
+import { gsap, ScrollTrigger } from '../../utils/gsap';
 
 //imagenes
 import logo from "../../assets/landingPage/logo.png"
-import iaTools from "../../assets/IA_TOOLS.png"
-import iaToolsLight from "../../assets/IA_TOOLS_W.png"
+import neurona from "../../assets/neurona.png"
 
 // navegación por scroll (no por hash, por conflicto con HashRouter)
 import { scrollToSection } from '../../utils/scrollToSection';
@@ -37,11 +38,175 @@ const HeroAiSection = () => {
     const { theme, toggleTheme } = useContext(MyDevHubContext)
     const { ref, visible } = useScrollReveal({ threshold: 0, rootMargin: '0px', initialDelay: 50 })
 
-    /**Animación de entrada del contenido principal (título+cta e imagen) —
-     * mismo hook/patrón que el resto del sitio, con delays escalonados para
-     * que aparezcan en secuencia. */
+    /**Animación de entrada del título+cta — mismo hook/patrón que el resto
+     * del sitio. La imagen (neurona) ya NO usa este hook: su animación es
+     * 100% GSAP (ver useEffect más abajo) para no mezclar los dos sistemas
+     * sobre el mismo elemento. */
     const heroContent = useScrollReveal({ threshold: 0, rootMargin: '0px' })
-    const heroImage = useScrollReveal({ threshold: 0, rootMargin: '0px' })
+
+    /**Refs para la animación de scroll de la neurona: el <section> (trigger
+     * de inicio), el slot invisible que reserva el espacio de layout de la
+     * imagen (tamaño 100% CSS, sin depender de JS), y la propia <img> —
+     * renderizada vía portal directo a document.body (ver return más abajo)
+     * para animarla con GSAP (rotación ~360°, traslado y achicado hasta
+     * "aterrizar" dentro de la primera card de ConceptosBentoSection — ver
+     * #neuron-landing-spot). El portal es necesario: el row que contiene el
+     * slot tiene `-translate-y-*` (un transform) para el centrado óptico
+     * del Hero, y un transform en un ancestro crea un containing block
+     * propio para position:fixed — la imagen quedaría "fija" relativa a
+     * ese row (que igual scrollea con la página) en vez de al viewport
+     * real. Portaleada a body, escapa ese containing block. */
+    const sectionRef = useRef(null)
+    const heroImageSlotRef = useRef(null)
+    const neuronImgRef = useRef(null)
+
+    /** TAREA 2 — animación de scroll de la neurona con GSAP.
+     * gsap.context() + ctx.revert() en cleanup (patrón explícito pedido
+     * para este efecto, en vez de useGSAP). scrub real (no once), ease:
+     * 'none' porque el movimiento lo gobierna el propio progreso del
+     * scroll, no un timing propio.
+     *
+     * La imagen es siempre position:fixed (JSX de abajo, visibility:hidden
+     * hasta que este efecto la ubica) — con o sin motion reducido se
+     * coloca una vez sobre el slot (fallback estático accesible); solo con
+     * motion habilitado se agrega además el ScrollTrigger que la anima.
+     * Tanto el rect de reposo (slot) como el de aterrizaje (landing spot)
+     * se leen EN CADA frame de onUpdate, no una vez en un cache — evita
+     * desincronizarse si algo reflowea la página después del mount (ej.
+     * webfonts) y simplifica la matemática: al ser position:fixed real
+     * (gracias al portal), left/top son directamente coordenadas de
+     * viewport, sin conversión de scroll de por medio. */
+    useEffect(() => {
+        const img = neuronImgRef.current
+        const slot = heroImageSlotRef.current
+        const landingEl = document.getElementById('neuron-landing-spot')
+        if (!img || !slot || !landingEl) return
+
+        const ctx = gsap.context(() => {
+            // Con motion reducido nunca se crea el ScrollTrigger (ver
+            // mm.add más abajo) — si igual quedara position:fixed, la
+            // imagen flotaría sobre el contenido mientras el usuario
+            // scrollea en vez de quedarse "quieta" en su lugar. Para esos
+            // usuarios se ancla como position:absolute en coordenadas de
+            // página desde el arranque: se ve estática y scrollea con el
+            // resto del contenido, como una imagen normal.
+            const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+            const placeOverSlot = () => {
+                const r = slot.getBoundingClientRect()
+                if (reduceMotion) {
+                    gsap.set(img, {
+                        visibility: 'visible', position: 'absolute',
+                        left: r.left + window.scrollX, top: r.top + window.scrollY,
+                        width: r.width, height: r.height, rotation: 0,
+                    })
+                } else {
+                    gsap.set(img, {
+                        visibility: 'visible', position: 'fixed',
+                        left: r.left, top: r.top, width: r.width, height: r.height, rotation: 0,
+                    })
+                }
+            }
+            placeOverSlot()
+
+            let st = null
+            // Una vez "aterrizada" (progress llega a 1), pasa de fixed
+            // (viewport) a absolute (página): así se queda prendida a la
+            // card y sigue scrolleando normalmente con el resto del
+            // contenido en vez de quedar flotando en una posición fija de
+            // pantalla mientras la card sigue de largo. Si el usuario
+            // vuelve a subir (progress < 1), vuelve a fixed para retomar
+            // el vuelo interpolado.
+            let landed = false
+            const mm = gsap.matchMedia()
+            mm.add('(prefers-reduced-motion: no-preference)', () => {
+                // Flotecito idle (arriba/abajo) — SOLO en reposo: antes de
+                // que arranque el scroll (estado inicial, autoplay) y una
+                // vez aterrizada en la card. Mientras está en pleno vuelo
+                // (0 < progress < 1) se pausa y su offset se resetea a 0,
+                // para no pelear con el left/top que interpola el scroll
+                // frame a frame — anima `y` (transform), una propiedad
+                // aparte de left/top/rotation, así que compone sin pisar
+                // nada apenas se retoma.
+                const floatTween = gsap.to(img, {
+                    y: -14,
+                    duration: 2.2,
+                    ease: 'sine.inOut',
+                    yoyo: true,
+                    repeat: -1,
+                })
+
+                st = ScrollTrigger.create({
+                    trigger: sectionRef.current,
+                    start: 'top top',
+                    // elemento real (no selector string): gsap.context scopea
+                    // los selectores por texto a sectionRef.current, y el
+                    // landing spot vive en la sección siguiente (fuera de ese
+                    // scope) — un string '#neuron-landing-spot' no lo hallaría.
+                    endTrigger: landingEl,
+                    end: 'center center',
+                    scrub: 1,
+                    onUpdate: (self) => {
+                        const p = self.progress
+                        const midFlight = p > 0 && p < 1
+
+                        if (midFlight) {
+                            if (!floatTween.paused()) {
+                                floatTween.pause()
+                                gsap.set(img, { y: 0 })
+                            }
+                        } else if (floatTween.paused()) {
+                            floatTween.play()
+                        }
+
+                        const e = landingEl.getBoundingClientRect()
+
+                        if (p >= 1) {
+                            if (!landed) {
+                                landed = true
+                                gsap.set(img, {
+                                    position: 'absolute',
+                                    left: e.left + window.scrollX,
+                                    top: e.top + window.scrollY,
+                                    width: e.width,
+                                    height: e.height,
+                                    rotation: 360,
+                                })
+                            }
+                            return
+                        }
+                        if (landed) {
+                            landed = false
+                            gsap.set(img, { position: 'fixed' })
+                        }
+
+                        const s = slot.getBoundingClientRect()
+                        gsap.set(img, {
+                            left: gsap.utils.interpolate(s.left, e.left, p),
+                            top: gsap.utils.interpolate(s.top, e.top, p),
+                            width: gsap.utils.interpolate(s.width, e.width, p),
+                            height: gsap.utils.interpolate(s.height, e.height, p),
+                            rotation: p * 360,
+                        })
+                    },
+                })
+                return () => { if (st) st.kill(); st = null }
+            })
+
+            // Si el ScrollTrigger ya existe, un resize refresca sus
+            // posiciones start/end (y dispara un onUpdate con el progress
+            // actual, recalculando left/top/width/height contra el tamaño
+            // nuevo) — antes solo se reubicaba sobre el slot cuando `st`
+            // era null (motion reducido), dejando la imagen con medidas
+            // viejas hasta el próximo scroll si el usuario resizeaba la
+            // ventana sin volver a scrollear.
+            const onResize = () => { if (st) st.refresh(); else placeOverSlot() }
+            window.addEventListener('resize', onResize)
+
+            return () => window.removeEventListener('resize', onResize)
+        }, sectionRef)
+
+        return () => ctx.revert()
+    }, [])
 
     /**Estado del menú dropdown (ahora válido para todos los tamaños de ventana) */
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -69,7 +234,8 @@ const HeroAiSection = () => {
     };
 
     return (
-        <section className="relative w-full h-screen flex flex-col overflow-hidden px-4 md:px-8 pt-3 pb-4 md:pt-4 md:pb-6">
+        <>
+        <section ref={sectionRef} className="relative w-full h-screen flex flex-col overflow-hidden px-4 md:px-8 pt-3 pb-4 md:pt-4 md:pb-6">
             {/* bg de fondo — sin cambios */}
             <div className="absolute inset-x-0 top-10 -z-10 flex transform-gpu justify-center overflow-hidden blur-3xl bg-white dark:bg-[#09090B]" aria-hidden="true">
                 <div
@@ -181,16 +347,35 @@ const HeroAiSection = () => {
                         </button>
                     </div>
 
-                    {/* Derecha: imagen de herramientas de IA generativa, grande, centrada y visible.
-                        Cambia de versión oscura a clara según el theme activo. El flotante va en
-                        la imagen (no en el wrapper) para no chocar con la transform de entrada. */}
-                    <div ref={heroImage.ref} className={`lg:w-[56%] flex items-center justify-center ${heroImage.anim('150ms').className}`} style={heroImage.anim('150ms').style}>
-                        <img src={theme === "dark" ? iaTools : iaToolsLight} alt="Herramientas de IA generativa: ChatGPT, Claude, Midjourney, DALL-E 3, Runway, ElevenLabs, Notion AI"
-                            className="animate-float w-full h-auto max-h-[36vh] sm:max-h-[38vh] md:max-h-[34vh] lg:max-h-[70vh] object-contain rounded-[28px]" />
-                    </div>
+                    {/* Derecha: slot invisible que solo reserva el espacio de layout
+                        — su tamaño es 100% CSS (aspect-ratio, sin depender de que la
+                        imagen cargue) porque la <img> real ya no vive acá (ver portal
+                        más abajo, y el comentario en el useEffect sobre por qué).
+                        ml-auto (no mx-auto): el alto máximo deja mucho ancho libre en
+                        esta columna del 56% — centrado ahí dejaba un hueco grande y
+                        asimétrico contra el borde derecho de la página comparado con
+                        el margen del título a la izquierda; pegado al borde derecho
+                        queda simétrico con el padding del título. */}
+                    <div ref={heroImageSlotRef} aria-hidden="true"
+                        className="lg:w-[56%] w-full max-w-[70vh] mx-auto lg:mx-0 lg:ml-auto aspect-[1274/1234] max-h-[36vh] sm:max-h-[38vh] md:max-h-[34vh] lg:max-h-[70vh]" />
                 </div>
             </div>
         </section>
+
+        {/* Neurona animada — portaleada a document.body para escapar el
+            transform del row de arriba (ver comentario del useEffect).
+            visibility:hidden hasta que el efecto la ubica sobre el slot. */}
+        {createPortal(
+            <img
+                ref={neuronImgRef}
+                src={neurona}
+                alt="Neurona de inteligencia artificial"
+                className="object-contain pointer-events-none"
+                style={{ visibility: 'hidden', margin: 0, zIndex: 40 }}
+            />,
+            document.body
+        )}
+        </>
     )
 }
 

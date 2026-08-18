@@ -496,7 +496,7 @@ function FlyingBubble({ t, iconFn, startX, startY, endX, endY, phase }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // COMPONENTE PRINCIPAL
 // ─────────────────────────────────────────────────────────────────────────────
-export default function AIGenerativaBento({ dark: darkProp }) {
+export default function AIGenerativaBento({ dark: darkProp, hovered }) {
 
     const [dark, setDark] = useState(() => {
         if (darkProp !== undefined) return darkProp;
@@ -651,20 +651,40 @@ export default function AIGenerativaBento({ dark: darkProp }) {
         setIaOpacity(1);
     }, [clearCycleTimers]);
 
+    // onEnter/onLeave llevan guard contra re-entradas (si ya está activo/
+    // inactivo, no hace nada) porque ahora dos fuentes pueden dispararlos:
+    // el propio contenedor (mouseenter/mouseleave nativo, para cuando el
+    // componente se usa suelto) y la prop `hovered` que le pasa la card
+    // completa desde MyServicesSection — así el ciclo nunca arranca doble.
+    const onEnter = useCallback(() => {
+        if (activeRef.current) return;
+        setActive(true); activeRef.current = true; setIaOpacity(0); addTimer(runCycle, 50);
+    }, [addTimer, runCycle]);
+
+    const onLeave = useCallback(() => {
+        if (!activeRef.current) return;
+        setActive(false); activeRef.current = false; clearTimeout(timerRef.current); stopAll();
+    }, [stopAll]);
+
     useEffect(() => {
         const el = containerRef.current;
         if (!el) return;
-        const onEnter = () => { setActive(true); activeRef.current = true; setIaOpacity(0); addTimer(runCycle, 50); };
-        const onLeave = () => { setActive(false); activeRef.current = false; clearTimeout(timerRef.current); stopAll(); };
         el.addEventListener("mouseenter", onEnter);
         el.addEventListener("mouseleave", onLeave);
         return () => {
             el.removeEventListener("mouseenter", onEnter);
             el.removeEventListener("mouseleave", onLeave);
-            clearTimeout(timerRef.current);
-            stopAll();
         };
-    }, [runCycle, stopAll, addTimer]);
+    }, [onEnter, onLeave]);
+
+    // Hover controlado desde afuera — permite que el trigger sea toda la
+    // card (BentoCard en MyServicesSection), no solo estos ~185px visuales
+    useEffect(() => {
+        if (hovered === undefined) return;
+        if (hovered) onEnter(); else onLeave();
+    }, [hovered, onEnter, onLeave]);
+
+    useEffect(() => () => { clearTimeout(timerRef.current); stopAll(); }, [stopAll]);
 
     return (
         <div
